@@ -1,0 +1,111 @@
+,trial,setting,pub_year,intvn_class,hf_type,fu,total_ss,n_c,n_i,age,nyha,lvef,fem,private,prot_report,prot_report_sup,journal,all_hosp_events_i,all_hosp_events_c,hf_hosp_events_i,hf_hosp_events_c,allh_reported
+1,STICHES,International,2016,Non-pharmaceutical,HFrEF,117.6,1212,602,610,59.50330033,37,27.49669967,73.99339934,No commercial involvement,Yes,Yes,NEJM,349,383,157,201,Yes
+2,TIME-CHF,International,2009,Non-pharmaceutical,HFrEF,18,499,248,251,76.49699399,74.34849699,29.7503006,34.48436874,Commercial Invovlement,Yes,Yes,JAMA,148,149,70,94,Yes
+3,SAVE,International,1992,Pharmaceutical,HFrEF,36,2231,1116,1115,59.40004482,NA,31,17.50022411,Commercial Invovlement,No,No,NEJM,NA,NA,154,192,No
+4,MADIT-CRT,International,2009,Non-pharmaceutical,HFrEF,28.8,1820,731,1089,64.59835165,10,24,24.93851648,Commercial Invovlement,No,No,NEJM,NA,NA,136,140,No
+5,REHAB-HF,United States,2021,Non-pharmaceutical,Both,6,349,174,175,72.6512894,80.49856734,NA,52.48997135,No commercial involvement,Yes,Yes,NEJM,NA,NA,NA,NA,Yes
+6,TAC-HFT,United States,2014,Non-pharmaceutical,HFrEF,12,59,21,38,59.63389831,17.9,34.44745763,6.796610169,Commercial Invovlement,No,No,JAMA,11,5,0,1,Yes
+7,BEAUTIFUL,International,2008,Pharmaceutical,HFrEF,12,10917,5438,5479,65.15056334,23.50187781,32.35018778,17,Commercial Invovlement,No,No,Lancet,NA,NA,426,427,No
+8,CAPRICORN,International,2001,Pharmaceutical,HFrEF,1.3,1959,984,975,63,NA,32.79954058,26.49770291,No commercial involvement,No,No,Lancet,NA,NA,118,138,No
+9,BLOCK HF,International,2013,Non-pharmaceutical,HFrEF,37,691,342,349,73.35354559,27.34544139,39.95354559,25.17973951,Commercial Invovlement,No,No,NEJM,NA,NA,76,90,No
+10,"Troughton et al., 2000",New Zealand,2001,Non-pharmaceutical,HFrEF,9.7,69,36,33,70.08695652,30.60869565,26.95652174,23.56521739,No commercial involvement,NA,No,Lancet,NA,NA,NA,NA,Yes
+11,STITCH 2,International,2009,Non-pharmaceutical,HFrEF,48,1000,499,501,62,49.499,28,14.998,No commercial involvement,Yes,Yes,NEJM,268,272,95,99,Yes
+12,COMMANDER HF,International,2018,Pharmaceutical,HFrEF,21.1,5022,2515,2507,66.3998407,52.85135404,34.4992035,22.90143369,Commercial Invovlement,No,No,NEJM,NA,NA,689,691,No
+13,EMPHASIS HF,International,2011,Pharmaceutical,HFrEF,21,2737,1373,1364,68.64983559,0,26.14983559,22.29868469,Commercial Invovlement,Yes,Yes,NEJM,408,491,164,253,Yes
+14,SOLVD-HF (A),International,1992,Pharmaceutical,HFrEF,37.4,4228,2117,2111,59.1,0,28,11.44992904,No commercial involvement,No,No,NEJM,876,967,184,273,Yes
+15,CHARM Preserved,International,2003,Pharmaceutical,HFpEF,36.6,3023,1509,1514,67.1500827,39.24875951,54.0499173,40.09851141,Commercial Invovlement,Yes,Yes,Lancet,912,922,241,276,Yes
+16,SOLVD-HF (B),International,1991,Pharmaceutical,HFrEF,41.4,2569,1284,1285,60.84994161,32.09980537,24.84998054,19.64978591,Commercial Invovlement,No,No,NEJM,893,950,332,470,Yes
+17,SWORD,International,1996,Pharmaceutical,HFrEF,27,3121,1572,1549,60.14815764,21.49631528,30.89926306,14,Commercial Invovlement,No,No,Lancet,NA,NA,86,71,No
+18,ACCLAIM,International,2008,Pharmaceutical,HFrEF,10.2,2408,1204,1204,64.3,71.5,22.65,20,Commercial Invovlement,Yes,Yes,Lancet,505,519,210,221,Yes
+19,DIAMOND-CHF,Denmark,1999,Pharmaceutical,HFrEF,18,1518,756,762,70,60.00790514,NA,26.50592885,Commercial Invovlement,No,No,NEJM,NA,NA,229,287,No
+20,GALACTIC-HF,International,2021,Pharmaceutical,HFrEF,21.8,8232,4112,4120,64.5,46.89980564,26.55004859,21.24995141,Commercial Invovlement,No,No,NEJM,NA,NA,1107,1133,No
+21,A-HeFT,United States,2004,Pharmaceutical,HFrEF,10,1050,532,518,56.80133333,99.90133333,24.052,40.096,Commercial Invovlement,No,No,NEJM,NA,NA,85,130,No
+22,GISSI-HF (Fatty Acids),Italy,2008,Pharmaceutical,Both,46.8,6975,3481,3494,67,36.54953405,33.09981362,21.7009319,Commercial Invovlement,Yes,Yes,Lancet,1986,2028,978,995,Yes
+23,GISSI-HF (Rosuvastatin),Italy,2008,Pharmaceutical,Both,3.9,4574,2289,2285,68,37.44881941,33.24986882,22.59895059,Commercial Invovlement,Yes,Yes,Lancet,1278,1286,629,634,Yes
+24,RAFT,International,2010,Non-pharmaceutical,HFrEF,40,1798,904,894,66.15027809,19.99555061,22.6,17.1105673,Commercial Invovlement,Yes,Yes,NEJM,331,351,174,236,Yes
+25,RED-HF,International,2013,Pharmaceutical,HFrEF,28,2278,1142,1136,71.49868306,65.19420544,30.49868306,41.45302897,Commercial Invovlement,No,No,NEJM,NA,NA,314,311,No
+26,SHIFT,International,2010,Pharmaceutical,HFrEF,22.9,6505,3264,3241,60.39893928,52,29,23.49823213,Commercial Invovlement,Yes,Yes,Lancet,1231,1356,514,672,Yes
+27,PARAGON-HF,International,2019,Pharmaceutical,HFpEF,35,4796,2389,2407,72.74981234,0.449812344,57.55018766,51.69962469,Commercial Invovlement,Yes,Yes,NEJM,NA,NA,405,433,No
+28,EchoCRT,International,2013,Non-pharmaceutical,HFrEF,19.4,809,405,404,57.95043263,97.04907293,27,27.65055624,Commercial Invovlement,No,No,NEJM,224,194,99,90,Yes
+29,IMPRESS,International,2000,Pharmaceutical,HFrEF,2.8,573,284,289,63.9530541,36.9982548,28.1026178,21.29144852,No commercial involvement,NA,No,Lancet,NA,NA,8,18,No
+30,"Rich et al., 1995",United States,1995,Non-pharmaceutical,Both,3,282,140,142,79.25602837,NA,42.5106383,63.53191489,No commercial involvement,NA,Yes,NEJM,41,59,24,54,Yes
+31,HART,United States,2010,Non-pharmaceutical,Both,31.16666667,902,451,451,63.6,31.6,NA,47.3,No commercial involvement,Yes,Yes,JAMA,279,287,105,105,Yes
+32,AFFIRM-AHF,International,2020,Pharmaceutical,HFrEF,12,1108,550,558,71.05108303,52.99277978,32.64963899,44.49638989,Commercial Invovlement,No,No,Lancet,NA,NA,142,178,No
+33,RALES,International,1999,Pharmaceutical,HFrEF,24,1663,841,822,65,99.55057126,25.39771497,27,Commercial Invovlement,NA,No,NEJM,NA,NA,215,300,No
+34,ELITE,International,1997,Pharmaceutical,HFrEF,11.2,722,370,352,73.48753463,35.1800554,30.48753463,33.24099723,Commercial Invovlement,No,No,Lancet,78,110,20,21,Yes
+35,TOPCAT,International,2014,Pharmaceutical,HFpEF,39.6,3445,1723,1722,68.7,32.99988389,56,51.54998549,No commercial involvement,Yes,Yes,NEJM,766,792,206,245,Yes
+36,EPHESUS,International,2003,Pharmaceutical,HFrEF,16,6632,3313,3319,64,NA,33,28.9990953,Commercial Invovlement,Yes,Yes,NEJM,1493,1526,345,391,Yes
+37,COPERNICUS,International,2001,Pharmaceutical,HFrEF,10.4,2289,1133,1156,63.29899519,NA,19.8505024,20.50502403,Commercial Invovlement,NA,Yes,NEJM,372,432,198,268,Yes
+38,PRAISE-1,United States,1996,Pharmaceutical,HFrEF,13.8,1153,582,571,64.7,100,21,24.11101474,Commercial Invovlement,NA,No,NEJM,NA,NA,206,227,No
+39,EMPEROR-REDUCED,International,2020,Pharmaceutical,HFrEF,16,3730,1867,1863,66.84962466,24.95005362,27.4497319,23.95048257,Commercial Invovlement,No,No,NEJM,688,796,246,342,Yes
+40,MITRA FR,France,2018,Non-pharmaceutical,HFrEF,12,304,152,152,70.35,67.1,33.1,25.35,Commercial Invovlement,No,No,NEJM,NA,NA,74,72,No
+41,ASCNED-HF,International,2011,Pharmaceutical,Both,1,7007,3511,3496,67,NA,NA,34.15160554,Commercial Invovlement,No,No,NEJM,NA,NA,204,208,No
+42,DAPA-HF,International,2019,Pharmaceutical,HFrEF,18.2,4744,2371,2373,66.34993676,31.59995784,31.05006324,23.40016863,Commercial Invovlement,No,No,NEJM,NA,NA,231,326,No
+43,ATMOSPHERE,International,2016,Pharmaceutical,HFrEF,36.6,7016,2336,4680,63.26664766,36.73244014,28.40005701,21.73352338,Commercial Invovlement,No,No,NEJM,NA,NA,872,452,No
+44,PARADIGM-HF,International,2014,Pharmaceutical,HFrEF,27,8399,4212,4187,63.8,24.70238124,29.49970235,21.80238124,Commercial Invovlement,Yes,Yes,NEJM,NA,NA,537,658,No
+45,CHARM-Added,International,2013,Pharmaceutical,HFrEF,41,2548,1272,1276,64.04992151,75.89952904,28,21.29984301,Commercial Invovlement,Yes,Yes,Lancet,852,858,309,356,Yes
+46,PROTECT,International,2010,Pharmaceutical,Both,0.233333333,2033,677,1356,70.2,NA,32.36660108,32.86650271,Commercial Invovlement,No,No,NEJM,NA,NA,5,4,No
+47,I-PRESERVE,International,2008,Pharmaceutical,HFpEF,49.5,4128,2061,2067,72,79.50072674,59.49927326,59.99854651,Commercial Invovlement,No,No,NEJM,NA,NA,325,336,No
+48,CASTLE-AF,International,2018,Non-pharmaceutical,HFrEF,37.8,363,184,179,64,29.47933884,31.99311295,14.52066116,Commercial Invovlement,Yes,Yes,NEJM,114,122,37,66,Yes
+49,FIGHT,United States,2016,Pharmaceutical,HFrEF,5.966666667,300,146,154,61.51333333,67.43333333,25,21.46,No commercial involvement,No,No,JAMA,NA,NA,63,50,No
+50,GUIDE-HF,International,2021,Non-pharmaceutical,Both,12,1000,503,497,70.497,70.497,39.006,37.497,Commercial Invovlement,No,No,Lancet,NA,NA,185,225,No
+51,GALACTIC,International,2019,Non-pharmaceutical,Both,6,781,399,382,77.48911652,100,36.51088348,37,No commercial involvement,No,No,JAMA,167,167,77,70,Yes
+52,HEAAL,International,2009,Pharmaceutical,HFrEF,56.4,3834,1913,1921,66,31,33,29.5010433,Commercial Invovlement,Yes,Yes,Lancet,1079,1097,450,503,Yes
+53,ANDROMEDA,International,2008,Pharmaceutical,HFrEF,2,627,317,310,71.50558214,59.77288676,NA,24.73827751,Commercial Invovlement,NA,No,NEJM,NA,NA,35,30,No
+54,CORONA,International,2007,Pharmaceutical,HFrEF,32.8,5011,2497,2514,73,62.99796448,31,24,Commercial Invovlement,No,No,NEJM,1489,1523,622,669,Yes
+55,MERIT-HF,International,2000,Pharmaceutical,HFrEF,12,3991,2001,1990,63.79972438,59.09917314,28,22.4986219,Commercial Invovlement,Yes,Yes,JAMA,581,668,200,294,Yes
+56,IN-TIME,International,2014,Non-pharmaceutical,HFrEF,12,664,331,333,65.54924699,56.99337349,26,19.24533133,Commercial Invovlement,No,No,Lancet,NA,NA,23,27,No
+57,CUPID 2,International,2016,Pharmaceutical,HFrEF,17.5,250,127,123,59.3348,82.016,23.508,18.524,Commercial Invovlement,No,No,Lancet,NA,NA,NA,NA,Yes
+58,CHARM-Alternative,International,2003,Pharmaceutical,HFrEF,33.7,2028,1015,1013,66.55024655,52.40039448,29.90009862,31.85004931,Commercial Invovlement,Yes,Yes,Lancet,610,643,207,286,Yes
+59,ASTRONAUT,International,2013,Pharmaceutical,HFrEF,11.3,1615,807,808,64.60006192,64.49907121,27.85003096,22.79900929,Commercial Invovlement,No,No,JAMA,389,396,212,224,Yes
+60,ACTIV in CHF,International,2004,Pharmaceutical,HFrEF,2,319,80,239,61.4984326,94.68338558,24.2507837,29.78056426,Commercial Invovlement,No,No,JAMA,NA,NA,44,14,No
+61,GUIDE-IT,International,2017,Non-pharmaceutical,HFrEF,15,894,448,446,63.00223714,42.50111857,24.50111857,32.00223714,No commercial involvement,No,No,JAMA,NA,NA,147,141,No
+62,"Feldman et al., 1993",United States,1993,Pharmaceutical,HFrEF,6,477,238,239,58.14989518,80.49601677,20,13.20041929,Commercial Invovlement,NA,No,NEJM,NA,NA,18,33,No
+63,BEST,International,2001,Pharmaceutical,HFrEF,24,2708,1354,1354,60,100,23,22,No commercial involvement,NA,Yes,NEJM,829,875,476,569,Yes
+64,CONNECT-HF,United States,2021,Non-pharmaceutical,HFrEF,10.28033764,5647,2972,2675,62.61577829,NA,NA,33.32629715,No commercial involvement,No,No,JAMA,NA,NA,616,716,No
+65,SERVE-HF,International,2015,Non-pharmaceutical,HFrEF,31,1325,659,666,69.45079245,70.45079245,32.35079245,9.602641509,Commercial Invovlement,Yes,Yes,NEJM,452,448,287,272,Yes
+66,Val-HeFT,International,2001,Pharmaceutical,HFrEF,23,5010,2499,2511,62.69928144,38.14916168,26.74964072,20.05011976,Commercial Invovlement,No,No,NEJM,NA,NA,346,455,Yes
+67,CARE-HF,International,2005,Non-pharmaceutical,HFrEF,29.4,813,404,409,66.50307503,100,25,26.49692497,Commercial Invovlement,No,No,NEJM,NA,NA,72,133,No
+68,Tele-HF,United States,2010,Non-pharmaceutical,Both,6,1653,827,826,61,57.24966727,NA,42.04912281,No commercial involvement,Yes,Yes,NEJM,407,392,227,223,Yes
+69,MUSTIC,International,2001,Non-pharmaceutical,HFrEF,6,134,67,67,63,100,23,25.4,Commercial Invovlement,NA,No,NEJM,NA,NA,3,9,No
+70,COMPANION,United States,2004,Non-pharmaceutical,HFrEF,16,1520,308,1212,66.81192105,100,21.18668421,32.59473684,Commercial Invovlement,Yes,Yes,NEJM,760,199,345,112,Yes
+71,HF-ACTION,International,2012,Non-pharmaceutical,HFrEF,30,2322,1164,1158,59,36.99741602,25,30,No commercial involvement,Yes,Yes,JAMA,570,592,284,313,Yes
+72,SOLOIST-WHF,International,2021,Pharmaceutical,Both,9,1222,614,608,69.50245499,NA,35,33.75564648,Commercial Invovlement,No,No,NEJM,234,254,NA,NA,Yes
+73,VICTORIA,International,2020,Pharmaceutical,HFrEF,10.8,5050,2524,2526,67.35005941,41.00015842,28.9000396,23.9500198,Commercial Invovlement,No,No,NEJM,NA,NA,691,747,No
+74,EMPEROR-Preserved,International,2021,Pharmaceutical,HFpEF,26.2,5988,2991,2997,71.8499499,18.4003006,54.3,44.6499499,Commercial Invovlement,No,No,NEJM,NA,NA,259,352,Yes
+75,MOOD-HF,Germany,2016,Pharmaceutical,HFrEF,18.6,372,187,185,62.25026882,53.02688172,34.79946237,24.50268817,Commercial Invovlement,Yes,Yes,JAMA,116,118,40,42,Yes
+76,DIG trial,International,1997,Pharmaceutical,HFrEF,37,6800,3403,3397,63.45004412,32.64977941,28.49991176,22.35013235,No commercial involvement,Yes,Yes,NEJM,2184,2282,910,1180,Yes
+77,ANZ Trial,International,1997,Pharmaceutical,HFrEF,19,415,208,207,NA,16.01204819,NA,NA,Commercial Invovlement,NA,Yes,Lancet,99,120,23,33,Yes
+78,PIONEER-HF,United States,2019,Pharmaceutical,HFrEF,2,881,441,440,62.00113507,71.19772985,24.50056754,27.95255392,Commercial Invovlement,No,No,NEJM,NA,NA,35,61,No
+79,COSMIC-HF,International,2016,Pharmaceutical,HFrEF,4.7,299,149,150,63.49832776,31.00334448,29.22525084,17.74247492,Commercial Invovlement,No,No,Lancet,50,24,19,11,Yes
+80,COAPT,International,2018,Non-pharmaceutical,Both,22.7,614,312,302,72.25895765,60.86188925,31.3,35.99153094,Commercial Invovlement,Yes,Yes,NEJM,251,270,151,208,Yes
+81,AF-CHF,International,2008,Non-pharmaceutical,HFrEF,37,1376,694,682,NA,NA,NA,NA,No commercial involvement,Yes,Yes,NEJM,436,409,NA,NA,Yes
+82,ELITE II,International,2000,Pharmaceutical,HFrEF,18.5,3152,1574,1578,71.44993655,48,31,30.49936548,Commercial Invovlement,Yes,Yes,Lancet,659,638,270,293,Yes
+83,TRUE-AHF,International,2017,Pharmaceutical,Both,15,2157,1069,1088,68.50176171,62.35220213,NA,34.20176171,Commercial Invovlement,No,No,NEJM,NA,NA,75,74,No
+84,DIAMOND,Denmark,2000,Pharmaceutical,HFrEF,15.2,1510,761,749,68.50397351,35.50397351,NA,26.48807947,Commercial Invovlement,No,No,Lancet,NA,NA,133,152,No
+85,WARCEF,International,2012,Pharmaceutical,HFrEF,42,2305,1163,1142,61,30.88815618,25,19.99362256,No commercial involvement,No,No,NEJM,NA,NA,239,203,No
+86,"Cohn et al., 1998",International,1998,Pharmaceutical,HFrEF,9.533333333,3833,1283,2550,62.9,98.63368119,20.9,23.70271328,Commercial Invovlement,NA,No,NEJM,1219,635,677,360,Yes
+87,V-HeFT II,United States,1991,Pharmaceutical,HFrEF,30,804,401,403,60.55012438,43.2528607,28.99900498,0,No commercial involvement,NA,No,NEJM,NA,NA,76,78,No
+88,CHAMPION-HF,USA,2023,Non-pharmaceutical,Both,18,550,280,270,61.50909091,100,NA,27.49090909,Commercial Invovlement,No,No,Lancet,NA,NA,55,80,Yes
+89,MIRACLE,International,2002,Non-pharmaceutical,HFrEF,6,453,225,228,64.29735099,100,21.70066225,32,Commercial Invovlement,No,No,NEJM,NA,NA,18,34,No
+90,CIBIS-II,International,1999,Pharmaceutical,HFrEF,15.6,2647,1320,1327,61,100,27.54986777,19.49867775,Commercial Invovlement,Yes,Yes,Lancet,440,513,159,232,Yes
+91,FOCUS-CCTRN,United States,2012,Non-pharmaceutical,HFrEF,6,92,31,61,63.40076087,41.30206522,31.67521739,10.86586957,No commercial involvement,No,No,JAMA,NA,NA,2,4,No
+92,CELLWAVE,Germany,2013,Non-pharmaceutical,HFrEF,4,82,39,43,61.23780488,33.06707317,NA,17.82682927,Commercial Invovlement,No,No,JAMA,NA,NA,9,20,No
+93,TIME,United States,2012,Non-pharmaceutical,HFrEF,6,120,41,79,56.85516667,NA,36.64166667,12.46333333,Commercial Invovlement,No,No,JAMA,NA,NA,4,1,No
+94,CULPRIT-SHOCK,International,2018,Non-pharmaceutical,Both,12,686,342,344,70,NA,31.50437318,23.50466472,No commercial involvement,No,No,NEJM,NA,NA,18,4,No
+95,PACT-HF,Canada,2019,Non-pharmaceutical,Both,3,2494,1390,1104,77.66967923,NA,NA,50.47040898,No commercial involvement,Yes,Yes,JAMA,308,394,132,183,Yes
+96,PANACHE,International,2019,Pharmaceutical,HFpEF,4.666666667,305,76,229,73.3242623,13.04786885,56.02393443,52.33081967,Commercial Invovlement,No,No,JAMA,NA,NA,18,2,No
+97,SOCRATES,International,2015,Pharmaceutical,HFrEF,2.8,456,92,364,67.79824561,47.38662281,29.61776316,19.7620614,Commercial Invovlement,No,No,JAMA,NA,NA,50,16,No
+98,OPTIMAAL,International,2002,Pharmaceutical,Both,32.4,5477,2733,2744,67.40040168,NA,NA,28.74889538,Commercial Invovlement,No,No,Lancet,1806,1774,306,265,Yes
+99,CARRESS,International,2012,Non-pharmaceutical,Both,2,188,94,94,67.5,NA,32.5,25,No commercial involvement,No,No,NEJM,46,37,23,24,Yes
+100,FAIR-HF,International,2009,Pharmaceutical,HFrEF,5.6,459,155,304,67.66492375,82.16100218,32.27145969,53.14422658,Commercial Invovlement,Yes,Yes,NEJM,25,17,6,7,Yes
+101,VMAC,United States,2002,Pharmaceutical,Both,6,489,216,273,61.11656442,81.58282209,NA,32.74233129,Commercial Invovlement,NA,No,JAMA,50,48,20,27,Yes
+102,DELIVER,International,2022,Pharmaceutical,HFpEF and HFmrEF,27.6,6263,3132,3131,71.64997605,24.74978445,54.15002395,43.9000479,Commercial Invovlement,No,No,NEJM,NA,NA,329,418,Yes
+103,REVIVED-BCIS2,United Kingdom,2022,Non-pharmaceutical,HFrEF,41,700,353,347,69.39485714,26.02571429,27,12.49571429,No commercial involvement,No,No,NEJM,NA,NA,51,54,No
+104,ADVOR,Belgium,2022,Pharmaceutical,Both,3,515,256,259,78.19825243,87.25436893,43,37.38252427,No commercial involvement,No,No,NEJM,NA,NA,47,45,No
+105,TRILUMINATE,International,2023,Non-pharmaceutical,Both,12,350,175,175,77.9,57.4,59,54.85,Commercial Invovlement,No,No,NEJM,NA,NA,25,20,No
+106,COACH,Canada,2023,Non-pharmaceutical,Both,9.3,5452,2972,2480,78,NA,NA,45.18195158,No commercial involvement,No,No,NEJM,NA,NA,142,222,No
+107,IRONMAN,United Kingdom,2023,Pharmaceutical,HFrEF,32.4,1137,568,569,73.34986807,42.99912049,33.49868074,26.49868074,Commercial Invovlement,Yes,Yes,Lancet,166,191,NA,NA,Yes
+108,STRONG-HF,International,2023,Non-pharmaceutical,Both,6,860,425,435,62.9494186,63.03488372,36.30465116,38.51744186,Commercial Invovlement,No,No,Lancet,NA,NA,47,74,No
+109,MONITOR-HF,Netherlands,2023,Non-pharmaceutical,Both,21.6,348,172,176,69.49425287,100,30,24.41724138,Commercial Invovlement,Yes,Yes,Lancet,NA,NA,63,85,Yes
+110,HEART-FID,International,2023,Pharmaceutical,HFrEF,22.8,3065,1533,1532,68.6,47.09977162,30.69996737,33.80026101,Commercial Invovlement,No,No,NEJM,NA,NA,351,353,No
