@@ -1,0 +1,1422 @@
+---
+title: "Heart Failure & All-Cause Hospitalization in Randomized Trials"
+subtitle: "An Analysis of 110 Randomized Clinical Trials."
+format: 
+  html:
+    toc: true
+    toc-location: body
+date: 2-23-2024
+theme: lightly
+author:
+  - name: "Ahmed Sayed (asu.ahmed.sayed@gmail.com)"
+    affiliations: "Ain Shams University, Faculty of Medicine"
+embed-resources: true
+toc: true
+toc-expand: 2
+toc-title: Contents
+page-layout: full
+code-fold: true
+editor: visual
+editor_options: 
+  chunk_output_type: console
+---
+
+# Code Blocks
+
+## Setup
+
+### Load libraries and functions
+
+```{r message = FALSE, warning = FALSE}
+#Load libs
+#These are the packages needed for this analysis
+packs <- c("dplyr", "tidyr", "meta", "forcats", "marginaleffects", "qs",
+           "ggplot2", "readxl", "broom", "rms", "data.table",
+           "rmarkdown", "palmerpenguins", "quarto", "readxl",
+           "ggbeeswarm", "ggthemes",
+           "stringr", "Hmisc", "doParallel", "psychometric",
+           "betareg", "doParallel" , "grid", "ggpubr", "boot", "flextable", "tidybayes",
+           "officer", "fragility", "ggbeeswarm", "ggh4x", "ggsci", "brms", "posterior")
+
+invisible(lapply(packs, require, character.only = T))
+
+#This is a self-contstructed function to retrieve effect sizes from meta objects
+get_estimates <- function(meta_object, es) {
+  
+  #Get estimates
+  point_estimate <- meta_object$TE.random.w
+  lower_ci <- meta_object$lower.random.w
+  upper_ci <- meta_object$upper.random.w
+  upper_ci <- meta_object$upper.random.w
+  subgroups <- meta_object$byvar %>% levels
+  treatment_effects <- data.frame(uci = upper_ci, lci = lower_ci, 
+                                  pe = point_estimate, sg = subgroups,
+                                  es = es)
+  
+  
+  #Do what is necessary according to effect size
+  if(es == "rd") {
+    treatment_effects %>% mutate(across(where(is.numeric), ~ (. * -100) %>% r1 %>% as.numeric))
+  } else if(es == "rr") {
+    treatment_effects %>% mutate(across(where(is.numeric), ~ {1 - exp(.)} %>% {. * -100} %>% r1 %>% as.numeric))
+  }
+  
+}
+
+#Create a function to inspect traceplots and Rhat
+check_traceplots <- function(brms_model) {
+  
+  #Inspect traceplots and posterior distributions for critical parameters
+  plot(brms_model, variable = c("cor_trial__outcomeall__outcomehf"))
+  plot(brms_model, variable = c("sd_trial__outcomeall"))
+  plot(brms_model, variable = c("sd_trial__outcomehf"))
+}
+
+#Function to format P-values
+p <- function(p) {
+  ifelse(p < 0.001, "<0.001", ifelse(round(p, 2) == 0.05 | round(p, 2) == 0, round(p, 3) %>% format(nsmall = 3), round(p, 2) %>% format(nsmall = 2))) %>% as.character
+}
+
+#Place a 2-by-2 grid
+grid_2by2 <- function() {
+  
+  hrzl_coords = c(0.5, 0.5, 0, 1)
+  vert_coords = c(0, 1, 0.5, 0.5)
+  line_id = c(1, 1, 2, 2)
+  grid.polygon(hrzl_coords, vert_coords, line_id, gp = gpar(lwd = 2))
+}
+
+#Function to add commas
+comma <- function(x) {
+  if(!is.numeric(x)) {
+    x <- x %>% pull
+  }
+  x %>%
+    format(big.mark = ",", trim = T)
+}
+
+#Function to insert footnote symbol in the correct order
+footnote_symbol <- function(i) {
+  footnote_symbols <- c("\U002A", "\U2020", "\U2021", "\U00A7")
+  footnote_symbols[i]
+}
+
+#Perform some aesthetic modifications for flextables
+flextable_aes <- function(table, table_title) {
+  
+  #Table font
+  table <- flextable::font(table, fontname = "Times New Roman", part = "all")
+  
+  #Align everything centrally
+  table <- flextable::align(table, align = "center", part = "all")
+  
+  #Table heading
+  table <- flextable::set_caption(table, caption = table_title,
+                                  fp_p = fp_par(text.align = "left"))
+  
+  #Align footer to the left
+  table <- flextable::align(table, align = "left", part = "footer")
+  
+  #Bold
+  table <- flextable::bold(table, part = "header")
+  table <- flextable::bold(table, part = "body", j = 1)
+  
+  #Print
+  table
+}
+
+#Round to 1 decimal
+r1 <- function(x) {
+  x %>% round(1) %>% format(nsmall = 1)
+}
+
+
+#Round to 2 decimals
+r2 <- function(x) {
+  x %>% round(2) %>% format(nsmall = 2)
+}
+
+```
+
+### Import the data + obtain baseline characteristics
+
+```{r message = FALSE, warning = FALSE}
+
+# Import data from the CSV file
+x <- read.csv("Data Sheet.csv")
+
+#Make data.table
+x <- as.data.table(x)
+
+#Get total sample size
+total_n <- sum(x$total_ss)
+
+#Get N of trials
+trials_n <- x[,.N]
+
+##Get relevant baseline characteristics
+#Follow-up
+fu_iqr <- quantile(x$fu, na.rm = T) %>% round(1)
+#Age
+age_iqr <- quantile(x$age, na.rm = T) %>% round(1)
+#Female %
+fem_iqr <- quantile(x$fem, na.rm = T) %>% round(1)
+#NYHA III/IV %
+nyha_iqr <- quantile(x$nyha, na.rm = T) %>% round(1)
+#LVEF
+lvef_iqr <- quantile(x$lvef, na.rm = T) %>% round(1)
+#HF Types
+x[, hf_type := fifelse(hf_type != "HFrEF", "HFpEF/HFmrEF with or without HFrEF", hf_type)]
+hf_types <- summary(x$hf_type %>% factor)
+#Intervention classes
+intvn_classes <- summary(x$intvn_class %>% factor)
+```
+
+*Baseline characteristics of included trials*
+
+**Figure 1** illustrates the study selection process. After screening 667 records retrieved by our search strategy and a further 40 records after updating our search, we included `r trials_n` trials published between `r min(x[, pub_year])` and `r max(x[, pub_year])`. The trials enrolled a total of `r total_n %>% comma` patients with a median follow-up duration of `r fu_iqr[3] %>% format(nsmall = 1)` months (IQR: `r fu_iqr[2] %>% format(nsmall = 1)` to `r fu_iqr[4] %>% format(nsmall = 1)` months). The median age of enrolled patients was `r age_iqr [3] %>% format(nsmall = 1)` years (IQR: `r age_iqr[2] %>% format(nsmall = 1)` to `r age_iqr[4] %>% format(nsmall = 1)` years), the median proportion of female participants was `r fem_iqr [3] %>% format(nsmall = 1)`% (IQR: `r fem_iqr[2] %>% format(nsmall = 1)`% to `r fem_iqr[4] %>% format(nsmall = 1)`%), and the median proportion of participants classified as NYHA III/IV was `r nyha_iqr [3] %>% format(nsmall = 1)`% (IQR: `r nyha_iqr[2] %>% format(nsmall = 1)`% to `r nyha_iqr[4] %>% format(nsmall = 1)`%).
+
+The median average LVEF was `r lvef_iqr [3] %>% format(nsmall = 1)`% (IQR: `r lvef_iqr[2] %>% format(nsmall = 1)`% to `r lvef_iqr[4] %>% format(nsmall = 1)`%). `r hf_types[2]` studies strictly recruited patients with HFrEF whereas `r hf_types[1]` studies recruited patients with HFpEF/HFmrEF (with or without HFrEF). When classified by the type of intervention studied, `r intvn_classes[2]` out of `r trials_n` trials pharmaceutical interventions and `r intvn_classes[1]` studied non-pharmaceutical interventions.
+
+**Supplementary Table 2** shows the baseline characteristics of all included trials, **Supplementary Table 3** shows the reasons for excluding other articles qualifying for full-text screening, and **Supplementary Table 4** shows the RoB-II bias assessments for included studies.
+
+## Ratio of HF to all-cause hospitalization
+
+### Calculate the ratio of all-cause to HF hospitzliations
+
+```{r, eval = TRUE}
+#Create a column containing the % proportion of all-cause hosptializations that are due to HF
+x$hf_hosp_prop <- x$hf_hosp_events_c/x$all_hosp_events_c
+x$hf_hosp_prop_var <- (x$hf_hosp_prop * (1 - x$hf_hosp_prop)) / x$all_hosp_events_c
+
+x$hf_hosp_prop_precis <- 1/x$hf_hosp_prop_var
+x$hf_hosp_prop_precis <- x$hf_hosp_prop_precis/mean(x$hf_hosp_prop_precis, na.rm = T)
+
+#Calculate the IQR for the % proportion of all-cause hospitalizations that are due to HF
+hf_hosp_prop_iqr <- wtd.quantile(100*x$hf_hosp_prop, weights = x$hf_hosp_prop_precis, na.rm = T) %>% round(1)
+
+##Regress according to (use number of all-cauase hospitalizations as a weight):
+#NYHA
+nyha_prop_model <- betareg(data = x, hf_hosp_prop ~ nyha, weights = hf_hosp_prop_precis)
+#LVEF
+lvef_prop_model <- betareg(data = x, hf_hosp_prop ~ lvef, weights = hf_hosp_prop_precis)
+#Age
+age_prop_model <- betareg(data = x, hf_hosp_prop ~ age, weights = hf_hosp_prop_precis)
+#Female
+fem_prop_model <- betareg(data = x, hf_hosp_prop ~ fem, weights = hf_hosp_prop_precis)
+#All_hosp rate
+x$all_hosp_prop <- x$all_hosp_events_c/(x$n_c)
+x$all_hosp_rate <- x$all_hosp_events_c/(x$n_c * x$fu)
+all_hosp_prop_model <- betareg(data = x, hf_hosp_prop ~ all_hosp_prop, weights = hf_hosp_prop_precis)
+all_hosp_rate_model <- betareg(data = x, hf_hosp_prop ~ all_hosp_rate, weights = hf_hosp_prop_precis)
+#Class of intervention
+intvn_prop_model <- betareg(data = x, hf_hosp_prop ~ intvn_class, weights = hf_hosp_prop_precis)
+#Type of HF
+hf_type_prop_model <- betareg(data = x, hf_hosp_prop ~ hf_type, weights = hf_hosp_prop_precis)
+#Time
+year_prop_model <- betareg(data = x, hf_hosp_prop ~ pub_year, weights = hf_hosp_prop_precis)
+
+#Combine all the models into a list
+prop_models <- list(nyha_prop_model,
+            lvef_prop_model,
+            intvn_prop_model,
+            hf_type_prop_model,
+            age_prop_model,
+            fem_prop_model,
+            all_hosp_rate_model,
+            all_hosp_prop_model)
+
+#Save these names
+names(prop_models) <- .q(nyha_prop_model,
+            lvef_prop_model,
+            intvn_prop_model,
+            hf_type_prop_model,
+            age_prop_model,
+            fem_prop_model,
+            all_hosp_rate_model,
+            all_hosp_prop_model)
+
+#Bind together the regression results into a single data.frame
+props_df <- lapply(prop_models,
+       function(model) model %>% 
+         tidy(confint = TRUE) %>%
+         filter(term %nin% c("(Intercept)", "(phi)")) %>%
+         dplyr::select(-component)) %>%
+  rbindlist
+
+#Create a props df
+props_df <- foreach(prop_model = prop_models,
+        .combine = "rbind") %do% {
+  
+  #Get variable name
+  var_name <- as.character(prop_model$formula[[3]]) 
+  
+  #For numeric/continuous variables, extract IQR proportions and differencesd
+  if(prop_model$model[[2]] %>% is.numeric) {
+    
+    #Create a list object containing the variable and iqr
+    variable_list <- list("iqr")
+    names(variable_list) <- var_name
+    
+  #Get difference in proportions
+  prop_diff <- prop_model %>%
+    avg_comparisons(variables = variable_list) %>% 
+    data.table %>%
+    dplyr::select(term, estimate, conf.low, conf.high)
+  
+  #Get Q1 and Q3
+  q1_q3 <- prop_model %>% 
+    avg_predictions(variables = variable_list) %>%
+    data.table %>%
+    pull(estimate)
+  
+  #Bind together
+  prop_df <- prop_diff[, `:=`(low = q1_q3[1], high = q1_q3[2])]
+  
+  #Add P-value
+  prop_df[, pval := prop_model %>%
+                    tidy %>%
+                 filter(term %nin% c("(Intercept)", "(phi)")) %>%
+                 dplyr::pull(p.value) %>% p]
+  } else {
+    
+    #Create a list object containing the variable and iqr
+    variable_list <- list("pairwise")
+    names(variable_list) <- var_name
+    
+    #Get difference in proportions
+  prop_diff <- prop_model %>%
+    avg_comparisons(variables = variable_list) %>% 
+    data.table %>%
+    dplyr::select(term, estimate, conf.low, conf.high)
+  
+  #Get Q1 and Q3
+  q1_q3 <- prop_model %>% 
+    avg_predictions(by = var_name) %>%
+    data.table %>%
+    pull(estimate) %>%
+    sort(decreasing = FALSE)
+  
+  #Bind together
+  prop_df <- prop_diff[, `:=`(low = q1_q3[1], high = q1_q3[2])]
+  
+    #Add P-value
+  prop_df[, pval := prop_model %>%
+                    tidy %>%
+                 filter(term %nin% c("(Intercept)", "(phi)")) %>%
+                 dplyr::pull(p.value) %>% p]
+  }
+  
+  prop_df
+  
+  #
+
+        }
+
+#Round estimates
+props_df <- props_df %>%
+  mutate(across(.cols = c("estimate", 
+                          "conf.low", "conf.high",
+                          "low", "high"), ~ . %>%
+                  {ifelse(pval < 0.05, ifelse(. < 0, (100*.) * -1, 100*.), .*100)} %>%
+                  round(1))) %>%
+  rowwise %>%
+  mutate(diff_ci = paste0(estimate, "% [95% CI: ", 
+                          min(conf.low, conf.high) %>% format(nsmall = 1),
+                          "% to ",
+                          max(conf.high, conf.low) %>% format(nsmall = 1), "%]") %>%
+           str_squish) %>%
+  data.table
+```
+
+*Ratio of heart failure hospitalizations to all-cause hospitalizations*
+
+Among the control groups of the included trials, the ratio of heart failure to all-cause hospitalizations was `r hf_hosp_prop_iqr[3]`% (IQR: `r hf_hosp_prop_iqr[2]` to `r hf_hosp_prop_iqr[4]`%), indicating that just under half of all participants who experienced hospitalization due to any cause experienced a heart failure hospitalization **(Figure 2)**. This ratio increased in trials enrolling a greater proportion of participants classified as NYHA III/IV (*P* = `r props_df[term == "nyha", pval]`; **Figure 3A**). Trials in the 1st quartile had an average ratio of `r props_df[term == "nyha", low]`% compared to trials in the 3rd quartile, which had an average ratio of `r props_df[term == "nyha", high]`% (% difference: `r props_df[term == "nyha", diff_ci]`). The ratio also decreased in trials enrolling participants with higher average LVEFs (*P* = `r props_df[term == "lvef", pval]`; **Figure 3B**). Trials in the 1st quartile had an average ratio of `r props_df[term == "lvef", low]`% compared to trials in the 3rd quartile, which had an average ratio of `r props_df[term == "lvef", high]`% (% difference: `r props_df[term == "lvef", diff_ci]`).
+
+Additionally, the ratio was higher in trials of non-pharmaceutical interventions (`r props_df[term == "intvn_class", high]`%) compared to trials of pharmaceutical interventions (`r props_df[term == "intvn_class", low]`%) (*P* = `r props_df[term == "intvn_class", pval]`; **Figure 3C**) (% difference: `r props_df[term == "intvn_class", diff_ci]`). Finally, trials which restricted recruitment to HFrEF patients had a higher ratio (`r props_df[term == "hf_type", high]`%) compared to trials which additionally enrolled patients with HFpEF/HFmrEF (`r props_df[term == "hf_type", low]`%) (*P* = `r props_df[term == "hf_type", pval]`; **Figure 3D**) (% difference: `r props_df[term == "hf_type", diff_ci]`). The association between age and the proportion of female participants with this ratio was negligible and not statistically significant (% differences of `r props_df[term == "age", estimate]`% and `r props_df[term == "fem", pval]`%, with *P* = `r props_df[term == "age", pval]` and `r props_df[term == "fem", pval]`, respectively).
+
+### Plot the overall ratio of HF to all-cause hospitalizations
+
+```{r, message = FALSE, warning = FALSE, fig.height = 9, fig.width = 16}
+#V1
+#Designate a common linewidth
+props_lwd <- 1.25
+
+#Plot trends across time
+ggplot(data = x,
+       aes(y = hf_hosp_prop, 
+           weight = hf_hosp_prop_precis,
+           x = 0)) +
+          geom_beeswarm(alpha = 0.2,
+                        cex = 4,
+                       size = 20) +
+  geom_boxplot(fill = NA,
+               color = "maroon",
+               ymin = quantile(x$hf_hosp_prop, 0.025, na.rm = T),
+               ymax = quantile(x$hf_hosp_prop, 0.975, na.rm = T),
+               outlier.shape = NA,
+               width = 0.05,
+               lwd = 1.5) +
+    geom_errorbar(color = "maroon",
+                  aes(
+      ymin = quantile(x$hf_hosp_prop, 0.025, na.rm = T),
+      ymax = quantile(x$hf_hosp_prop, 0.975, na.rm = T)),
+                width = 0.05,
+                lwd = 1.5) +
+  ggtitle("Ratio of HF to all-cause hospitalization in HF trials",
+          subtitle = NULL) +
+  scale_y_continuous(breaks = seq(0, 1, 0.1),
+                     expand = c(0.08, 0),
+                     labels = ~ . * 100,
+                     name = "Ratio of HF to all-cause hospitalization (%)") +
+  scale_x_continuous(name = NULL, labels = NULL) +
+  theme_pubclean() +
+  theme(text = element_text(size = 23, face = "bold"),
+        plot.title=element_text(face = "bold",hjust = 0.0, size = 20),
+        plot.subtitle = element_text(face = "bold", size = 13, hjust = 0.0, color = "grey45"),
+        axis.text.x = element_text(size = 20, face = "bold"),
+        axis.ticks.x = element_blank(),
+        axis.text.y = element_text(size = 20, face = "bold"),
+        axis.title.x = element_text(size = 25, face = "bold"),
+        axis.title.y = element_text(size = 25, face = "bold"),
+        axis.line = element_line(colour = "black", size = 1.2),
+        legend.position = "right",
+        legend.key.size = unit(1.25, "cm")) 
+
+ggsave("Figure 2.pdf",
+       dpi = 600,
+       width = 12, height = 9)
+
+
+```
+
+### Plot ratio of HF to all-cause hospitalizations by subgroup
+
+```{r, warning = FALSE, message = FALSE, fig.height = 9, fig.width = 16}
+
+#Store x axis titles in a vector
+xtitle_labels <- c("Proportion of NYHA III/IV participants", "Average LVEF",
+                   "Type of intervention", "Heart failure classification enrollment criteria")
+
+#Set a scale_down parameter to fit into a 2-by-2 graph
+scale_down <- 2
+
+#Use a foreach loop to create the four variables
+prop_figs <- foreach(prop_model = prop_models[1:4],
+        xtitle_label = xtitle_labels[1:4]) %do% {
+  
+          
+          #Set titles/breaks etc. accordingly
+ytitle <- paste0("Ratio of heart failure to all-cause hospitalizations (%)")
+xtitle <- paste0(xtitle_label)
+title <-  paste0(xtitle_label, " and the ratio of heart failure to all-cause hospitalization")
+  
+
+#Specify variable name
+          var_name <- prop_model$formula[[3]]
+          
+          #Get model predictions
+prop_preds_df <- prop_model %>%
+  predictions(transform = function(x) x * 100)
+
+prop_preds_df <- prop_preds_df %>%
+  rename(pred_var = var_name)
+
+#Create a main layer for continuous variables
+if(paste0(var_name) %in% c("nyha", "lvef")) {    
+main_layer <- ggplot(data = prop_preds_df,
+           aes(x = pred_var,
+               y = estimate,
+               ymin = conf.low,
+               ymax = conf.high)) +
+            geom_point(data = x %>% mutate(pred_var = !!as.symbol(var_name)),
+                       aes(x = pred_var,
+                           y = hf_hosp_prop*100),
+                       alpha = 0.5,
+                       size = 20/scale_down,
+                       color = "lightgrey",
+                       inherit.aes = FALSE) +
+          geom_ribbon(
+              fill = "lightblue",
+              alpha = 0.4) +
+  #Add Lines
+  geom_line(color = "maroon",
+              lwd = 1)  + 
+  scale_x_continuous(
+    name = xtitle
+  )
+}
+
+
+#Create a main layer for categorical variables
+if(paste0(var_name) %in% c("intvn_class", "hf_type")) {    
+main_layer <- ggplot(data = prop_preds_df,
+           aes(x = pred_var,
+               y = estimate,
+               ymin = conf.low,
+               ymax = conf.high,
+               color = pred_var)) +
+            geom_beeswarm(data = x %>% mutate(pred_var = !!as.symbol(var_name)),
+                       aes(x = pred_var,
+                           color = pred_var,
+                           y = hf_hosp_prop*100),
+                       alpha = 0.2,
+                       cex = 5,
+                       size = 20/scale_down,
+                       inherit.aes = FALSE) +
+  scale_color_tableau() +
+  geom_pointrange(fatten = 16/scale_down) +
+  geom_errorbar(width = 0.6/scale_down,
+                linewidth = 1/scale_down,
+                fatten = 16/scale_down) +
+    scale_x_discrete(
+    name = xtitle
+  )
+}
+    
+
+#Plot
+    main_layer +
+      ggtitle(title) +
+  #Add linetype legend
+  #Add scales
+  scale_y_continuous(
+    name = ytitle
+  ) + 
+  theme_pubclean() +
+  theme(text = element_text(size = 23/scale_down),
+        plot.title = element_text(face = "bold", hjust = 0.0, size = 16/scale_down),
+        panel.grid.major.y = element_line(linetype = "dotted", 
+      color = "grey"),
+      panel.grid.major.x = element_line(linetype = "dotted", 
+      color = "grey"),
+        axis.text.x = element_text(size = 20/scale_down, face = "bold"),
+        axis.text.y = element_text(size = 20/scale_down, face = "bold"),
+        axis.title.x = element_text(size = 20/scale_down, face = "bold"),
+        axis.title.x.top = element_text(size = 15/scale_down, face = "bold"),
+        axis.text.x.top = element_text(size = 15/scale_down, face = "bold"),
+        axis.title.y = element_text(size = 16/scale_down, face = "bold"),
+        axis.title.y.right = element_text(size = 15/scale_down, face = "bold"),
+        axis.text.y.right = element_text(size = 15/scale_down, face = "bold"),
+        axis.line = element_line(colour = "black", linewidth = 1.2),
+        legend.position = "none")
+  
+  }
+
+ggarrange(prop_figs[[1]], prop_figs[[2]], 
+          prop_figs[[3]], prop_figs[[4]],
+          labels = c("A", "B", "C", "D") %>% paste0("[", ., "]"),
+          ncol = 2, nrow = 2,
+          align = "v",
+          font.label = list(size = 10)) 
+grid_2by2()
+props_fig <- grid.grab()
+invisible(ggsave(props_fig,
+       filename = "Figure 3.pdf",
+       width = 16,
+       height = 9,
+       dpi = 600))
+```
+
+## Surrogacy Assessment
+
+### Setup
+
+#### Calculate Effect Sizes
+
+```{r, eval = TRUE}
+#1 small study had 0 events in the intervention group. We will add 0.5 as a correction to it
+x[, `:=`(hf_hosp_events_i = as.numeric(hf_hosp_events_i),
+        hf_hosp_events_c = as.numeric(hf_hosp_events_c))]
+x[hf_hosp_events_i == 0 | hf_hosp_events_c == 0,
+  `:=`(hf_hosp_events_i = hf_hosp_events_i + 0.5,
+       hf_hosp_events_c = hf_hosp_events_c + 0.5)]
+
+#Calcualte effect size for HF hospitalization on the log odds-scale ("hf_hosp_logor")
+x$hf_hosp_logor <- log((x$hf_hosp_events_i/(x$n_i - x$hf_hosp_events_i))/(x$hf_hosp_events_c/(x$n_c - x$hf_hosp_events_c)))
+#Do the same but for relative risk difference
+x$hf_hosp_logrr <- log((x$hf_hosp_events_i/x$n_i) /  (x$hf_hosp_events_c/(x$n_c)))
+#Do the same but as absolute risk difference
+x$hf_hosp_ard <- (x$hf_hosp_events_i/x$n_i) - (x$hf_hosp_events_c/x$n_c)
+
+#Calculate effect size for all-cause hospitalization on the log odds-scale ("all_hosp_logor")
+x$all_hosp_logor <- log((x$all_hosp_events_i/(x$n_i - x$all_hosp_events_i))/(x$all_hosp_events_c/(x$n_c - x$all_hosp_events_c)))
+#Calculate effect size for all-cause hospitalization on the log odds-scale ("all_hosp_logor")
+# x$all_hosp_logor_se <- log((x$all_hosp_events_i/(x$n_i - x$all_hosp_events_i))/(x$all_hosp_events_c/(x$n_c - x$all_hosp_events_c)))
+#Do the same but for relative risk difference
+x$all_hosp_logrr <- log((x$all_hosp_events_i/x$n_i) /  (x$all_hosp_events_c/(x$n_c)))
+#Do the same but as absolute risk differences
+x$all_hosp_ard <- (x$all_hosp_events_i/x$n_i) - (x$all_hosp_events_c/x$n_c)
+```
+
+```{r}
+#Save xfull as a separate data.frame
+xfull <- x
+#  #Check if the rendering data is already present in your working directory (as is the case if you have run this analysis before)
+if("Rendering Data.RData" %in% dir()) {
+load("Rendering Data.RData") #If so, load the data to speed up rendering and skip the MCMC simulations (rather than having to waste time on redoing the bootstrapping & MCMC simulations with brms)
+}
+```
+
+#### Bootstrap estimates of the standard errors and of within-trial correlation
+
+```{r, eval = TRUE}
+x <- x %>% filter(!is.na(all_hosp_events_c) & !is.na(hf_hosp_events_c))
+x[hf_hosp_events_i == 0.5, hf_hosp_events_i := 0]
+x[hf_hosp_events_c == 1.5,  hf_hosp_events_c := 1]
+
+if(!exists("models")) {
+
+for(i in 1:nrow(x)) {
+  
+  trial <- data.frame(
+    hf_hosp = 
+      c(
+        rep(1, x[i, hf_hosp_events_c]), rep(0, x[i, n_c - hf_hosp_events_c]),
+        rep(1, x[i, hf_hosp_events_i]), rep(0, x[i, n_i - hf_hosp_events_i])
+      ),
+    all_hosp = 
+      c(
+        rep(1, x[i, all_hosp_events_c]), rep(0, x[i, n_c - all_hosp_events_c]),
+        rep(1, x[i, all_hosp_events_i]), rep(0, x[i, n_i - all_hosp_events_i])
+      ),
+    ttt = 
+      c(
+        rep(0, x[i, n_c]),
+        rep(1, x[i, n_i])      
+      )
+  )
+  
+  results <- data.table(all_hosp_logor = rep(NA_real_, 1000),
+                        hf_hosp_logor = rep(NA_real_, 1000)
+  )
+  
+  for (index in 1:1000) {
+    
+    indices <- sample(x = 1:nrow(trial), 
+                      size = nrow(trial), 
+                      replace = TRUE)
+    bootsample <- trial[indices,] %>% data.table
+    
+    #Add a small 0.5 for complete 0 draws (since odds and risk ratios are inestimable in those circumstances)
+    if(bootsample[ttt == 1, sum(hf_hosp) == 0] | bootsample[ttt == 0, sum(hf_hosp) == 0]) {
+      bootsample$hf_hosp[bootsample$ttt == 1][1] <- 0.5
+      bootsample$hf_hosp[bootsample$ttt == 0][1] <- 0.5
+    }
+    if(bootsample[ttt == 1, sum(all_hosp) == 0] | bootsample[ttt == 0, sum(all_hosp) == 0]) {
+      bootsample$all_hosp[bootsample$ttt == 1][1] <- 0.5
+      bootsample$all_hosp[bootsample$ttt == 0][1] <- 0.5
+    }
+    
+    #Get OR for trial
+    all_hosp_boot_logor <- log(bootsample[ttt == 1, sum(all_hosp)/(.N - sum(all_hosp))]/bootsample[ttt == 0, sum(all_hosp)/(.N - sum(all_hosp))])
+    hf_hosp_boot_logor <- log(bootsample[ttt == 1, sum(hf_hosp)/(.N - sum(hf_hosp))]/bootsample[ttt == 0, sum(hf_hosp)/(.N - sum(hf_hosp))])
+    
+    #Get RR for trial
+    all_hosp_boot_logrr <- log(bootsample[ttt == 1, sum(all_hosp)/.N] / bootsample[ttt == 0, sum(all_hosp)/.N])
+    hf_hosp_boot_logrr <- log(bootsample[ttt == 1, sum(hf_hosp)/.N] / bootsample[ttt == 0, sum(hf_hosp)/.N])
+    
+    #Get ARD for trial
+    all_hosp_boot_ard <- bootsample[ttt == 1, sum(all_hosp)/.N] - bootsample[ttt == 0, sum(all_hosp)/.N]
+    hf_hosp_boot_ard <- bootsample[ttt == 1, sum(hf_hosp)/.N] - bootsample[ttt == 0, sum(hf_hosp)/.N]
+    
+    results[index, `:=`(all_hosp_logor = all_hosp_boot_logor,
+                        hf_hosp_logor = hf_hosp_boot_logor,
+                        all_hosp_logrr = all_hosp_boot_logrr,
+                        hf_hosp_logrr = hf_hosp_boot_logrr,
+                        all_hosp_ard = all_hosp_boot_ard,
+                        hf_hosp_ard = hf_hosp_boot_ard)]
+  }
+  
+  #Calculate correlation
+  x[i, correlation_logor := cor(results$all_hosp_logor, results$hf_hosp_logor)]
+  x[i, correlation_logrr := cor(results$all_hosp_logrr, results$hf_hosp_logrr)]
+  x[i, correlation_ard := cor(results$all_hosp_ard, results$hf_hosp_ard)]
+  
+  #Calculate standard errors for all-cause hospitalization
+  x[i, all_hosp_boot_logor_se := sd(results$all_hosp_logor)]
+  x[i, all_hosp_boot_logrr_se := sd(results$all_hosp_logrr)]
+  x[i, all_hosp_boot_ard_se := sd(results$all_hosp_ard)]
+  
+  #Calculate standard errors for HF hospitalization
+  x[i, hf_hosp_boot_logor_se := sd(results$hf_hosp_logor)]
+  x[i, hf_hosp_boot_logrr_se := sd(results$hf_hosp_logrr)]
+  x[i, hf_hosp_boot_ard_se := sd(results$hf_hosp_ard)]
+
+}
+}
+```
+
+### Model
+
+#### Fit model
+
+```{r, warning = FALSE, message = FALSE, eval = TRUE}
+#Convert to long format
+y <- data.table(
+  logor = x[, .(c(all_hosp_logor, hf_hosp_logor)), by = trial][[2]],
+  logor_se = x[, .(c(all_hosp_boot_logor_se, hf_hosp_boot_logor_se)), by = trial][[2]],
+  logrr = x[, .(c(all_hosp_logrr, hf_hosp_logrr)), by = trial][[2]],
+  logrr_se = x[, .(c(all_hosp_boot_logrr_se, hf_hosp_boot_logrr_se)), by = trial][[2]],
+  ard = x[, .(c(all_hosp_ard, hf_hosp_ard)), by = trial][[2]],
+  ard_se = x[, .(c(all_hosp_boot_ard_se, hf_hosp_boot_ard_se)), by = trial][[2]],
+  outcome = c("all", "hf") %>% rep(times = nrow(x)),
+  trial = x$trial %>% rep(each = 2),
+  hf_hosp_prop = x$hf_hosp_prop %>% rep(each = 2),
+  nyha = x$nyha %>% rep(each = 2),
+  cor_logor = x$correlation_logor %>% rep(each = 2),
+  cor_logrr = x$correlation_logrr %>% rep(each = 2),
+  cor_ard = x$correlation_ard %>% rep(each = 2)
+)
+
+#Create a vector of effect sizes to loop over
+effect_sizes <- c("logor", "logrr", "ard")
+
+#Setup a foreach loop
+covar_matrix_list <- foreach(effect_size = effect_sizes) %do% {
+                                              
+#Create the matrix                                              
+covar_matrix <- matrix(nrow = nrow(y), ncol = nrow(y))
+
+#Fill up the diagnoals with the variance
+diag(covar_matrix) <- y[, get(paste0(effect_size, "_se"))]^2
+                                              
+#Calculate and fill in the covariance of all-cause and HF hospitalizations for each trial
+foreach(i =  1:uniqueN(y$trial)) %do% {
+  
+  covar_matrix[2*i, (2*i) - 1] <- unique(y[, get(paste0("cor_", effect_size))])[i]*sqrt(covar_matrix[(2*i) - 1, (2*i) - 1])*sqrt(covar_matrix[2*i, 2*i])
+  covar_matrix[(2*i) - 1, 2*i] <-  unique(y[, get(paste0("cor_", effect_size))])[i]*sqrt(covar_matrix[(2*i) - 1, (2*i) - 1])*sqrt(covar_matrix[2*i, 2*i])
+}
+
+#Convert NAs to 0
+covar_matrix[is.na(covar_matrix)] <- 0
+covar_matrix
+}
+
+#Create variance-covraiance matrix
+covar_matrix_logor <- covar_matrix_list[[1]]
+covar_matrix_logrr <- covar_matrix_list[[2]]
+covar_matrix_ard <- covar_matrix_list[[3]]
+
+if(!exists("models")) {
+#Create a models object containing model fit and some diagnostics for each model
+models <- foreach(effect_size = effect_sizes) %do% {
+
+#Setup your formula
+surrogacy_form <- bf(paste0(effect_size,
+          " ~
+                       0 +
+                       outcome +
+                       (0 + outcome|trial) +", #Nest the 2 outcomes within their trials
+                       
+          "fcor(covar_matrix_", effect_size, ")") #Pass the covariance matrix
+)
+
+
+
+#Set up the SD parameter for the prior on effect size (b) (This is NOT the heterogeneity prior)
+prior_bsd <- ifelse(effect_size == "ard", 0.1, 1)
+
+#Set up your priors
+surrogacy_priors <-  c(prior(constant(1), class = "sigma"),
+                     prior(cauchy(0, 1), class = "sd"),
+                     prior(normal(0, prior_bsd), class = "b"),
+                     prior(lkj(1), class = "L"))
+
+#Create covar_matrix as a list 
+covar_matrix <- list(get(paste0("covar_matrix_", effect_size)))
+names(covar_matrix) <- paste0("covar_matrix_", effect_size)
+
+#Fit the model
+surrogacy_model <- brm(data = y,
+                       data2 = covar_matrix,
+                       prior = surrogacy_priors,
+                       family = gaussian,
+                       stanvars = stanvar(prior_bsd),
+                       formula = surrogacy_form,
+                       cores = 4,
+                       backend = "cmdstanr",
+                       control = list(adapt_delta = 0.90),
+                       iter = 4000, warmup = 1000,
+)
+
+#Check traceplots
+traceplot <- check_traceplots(surrogacy_model)
+#Check that Rhat is < 1.05 (use na.rm = TRUE since Rhat is inapplicable to sigma, which was fixed)
+rhat_check <- all(rhat(surrogacy_model) < 1.05, na.rm = TRUE)
+#Run a posterior predictive check
+post_pred_check <- pp_check(surrogacy_model)
+
+#Store in a list
+list(surrogacy_model, traceplot, rhat_check, post_pred_check)
+}
+}
+
+```
+
+#### Draw relevant parameters from the posterior
+
+```{r, warning = FALSE, message = FALSE, eval = TRUE}
+
+#First, store the model element of our list into a separate list
+surrogacy_models <- list(models[[1]][[1]],
+                         models[[2]][[1]],
+                         models[[3]][[1]])
+
+#Setup a foreach loop using each effect size and store content in "sparams" (surrogacy parameters)
+sparams <- foreach(surrogacy_model = surrogacy_models) %do% {
+#Make draws of the posteriors of the parameters
+draws <- tidy_draws(surrogacy_model)
+#Get the sigma for HF hosptialization
+sigma_hf <- draws$sd_trial__outcomehf
+#Get the sigma for all-cause hospitalization
+sigma_all <- draws$sd_trial__outcomeall
+#Get the correlation between them
+rho <- draws$cor_trial__outcomeall__outcomehf
+#Get the slope (slope is = Rho * (SD of all-cause hospitalization/SD of heart failure hospitalization))
+slope <- (draws$cor_trial__outcomeall__outcomehf*(draws$sd_trial__outcomeall/draws$sd_trial__outcomehf))
+#Get the Intercept
+intercept <- (draws$b_outcomeall - (slope * draws$b_outcomehf))
+#Get the RMSE
+rmse <- sqrt((draws$sd_trial__outcomeall^2) * (1 - (draws$cor_trial__outcomeall__outcomehf^2)))
+#Simulate added uncertainty based on the RMSE
+resid_uncertainty <- rnorm(n = 12000, #Same N of draws as the posterior
+                     mean = 0, #A mean of zero
+                     sd = rmse) #With a SD equal to the RMSE
+
+#Store items in a list
+params_list <- list(sigma_hf, sigma_all, rho, slope, intercept, rmse, resid_uncertainty)
+#Name contents
+names(params_list) <- .q(sigma_hf, sigma_all, rho, slope, intercept, rmse, resid_uncertainty)
+#Return list
+params_list
+}
+#Name the 3 components of sparams according to effect size
+names(sparams) <- effect_sizes
+
+```
+
+### Create predictive posterior intervals
+
+```{r, warning = FALSE, message = FALSE, eval = TRUE}
+
+#Set up a range of surrogate treatment effects to loop over for each effect size
+stes_ranges <- list(
+  seq(-2, 1, 0.01), #For log-ORs
+  seq(-2, 0.75, 0.01), #For log-RRs
+  seq(-0.28, 0.09, 0.001) #For ARDs
+)
+
+#And setup a standard error implied (largest half & smallest half)
+ste_standard_errors_ranges <- list(
+  c(
+    big_trial_se <- y$logor_se[y$outcome == "hf"] %>%
+      sort %>% {.[1:ceiling(uniqueN(y$trial)/2)]} %>%
+      mean,
+    small_trial_se <- y$logor_se[y$outcome == "hf"] %>% sort(decreasing = TRUE) %>%
+      {.[1:ceiling(uniqueN(y$trial)/2)]} %>%
+      mean
+    ),
+  c(
+    big_trial_se <- y$logrr_se[y$outcome == "hf"] %>%
+      sort %>% {.[1:ceiling(uniqueN(y$trial)/2)]} %>%
+      mean,
+    small_trial_se <- y$logrr_se[y$outcome == "hf"] %>% sort(decreasing = TRUE) %>%
+      {.[1:ceiling(uniqueN(y$trial)/2)]} %>%
+      mean
+    ),
+  c(
+    big_trial_se <- y$ard_se[y$outcome == "hf"] %>%
+      sort %>% {.[1:ceiling(uniqueN(y$trial)/2)]} %>%
+      mean,
+    small_trial_se <- y$ard_se[y$outcome == "hf"] %>% sort(decreasing = TRUE) %>%
+      {.[1:ceiling(uniqueN(y$trial)/2)]} %>%
+      mean
+    )
+)
+
+names(ste_standard_errors_ranges) <- effect_sizes
+
+#Use a foreach loop to produce a predictions using each effect size
+preds <- foreach(effect_size = effect_sizes,
+                 intercept = list(sparams$logor$intercept, 
+                                  sparams$logrr$intercept,
+                                  sparams$ard$intercept),
+                 slope = list(sparams$logor$slope, 
+                                  sparams$logrr$slope,
+                                  sparams$ard$slope),
+                 resid_uncertainty = list(sparams$logor$resid_uncertainty,
+                                          sparams$logrr$resid_uncertainty,
+                                          sparams$ard$resid_uncertainty),
+        ste_range = stes_ranges) %do% {
+          
+ste_standard_errors_range <- ste_standard_errors_ranges[[effect_size]]
+          
+#Setup a foreach loop
+preds_df <- foreach(ste = ste_range,
+                    .combine = "rbind") %do% {
+                      
+          #Generate treatment effect from 3 hypothetical trials with small, large, and infinite size
+          observed_ste_small <- rnorm(n = 12000, #Same N of draws as the posterior)
+                                mean = ste,
+                                sd = ste_standard_errors_range[2])
+          
+          
+          observed_ste_big <- rnorm(n = 12000, #Same N of draws as the posterior)
+                                mean = ste,
+                                sd = ste_standard_errors_range[1])
+          
+          observed_ste_inf <- ste
+          
+          #Predict the effect on the true outcome
+          #For a small trial
+          predicted_tte_small <- intercept + #Intercept
+            observed_ste_small * slope + #Slope * Surrogate effect
+            resid_uncertainty #Residual uncetainty
+          #Repeat for a large trial
+          predicted_tte_big <- intercept + #Intercept
+            observed_ste_big * slope + #Slope * Surrogate effect
+            resid_uncertainty #Residual uncetainty
+          
+          #Repeat for a large trial
+          predicted_tte_inf <- intercept + #Intercept
+            observed_ste_inf * slope + #Slope * Surrogate effect
+            resid_uncertainty #Residual uncetainty
+          
+          
+          #Place estimates into a data.table
+          preds_df <- data.table(surrogate_te = ste,
+                                 surrogate_se_big = ste_standard_errors_range[1],
+                                 surrogate_se_small = ste_standard_errors_range[2],
+                     pe = median(predicted_tte_big),
+                     q2.5_small = quantile(predicted_tte_small, c(0.025)),
+                     q97.5_small = quantile(predicted_tte_small, c(0.975)),
+                     q2.5_big = quantile(predicted_tte_big, c(0.025)),
+                     q97.5_big = quantile(predicted_tte_big, c(0.975)),
+                     q2.5_inf = quantile(predicted_tte_inf, c(0.025)),
+                     q97.5_inf = quantile(predicted_tte_inf, c(0.975))
+                     )
+                        
+              #Get CIs for implied HF effects
+          if(effect_size %in% c("logor", "logrr")) {
+              preds_df[, surrogate_pe_ci_small := paste0(surrogate_te %>%
+                                                           exp %>% r2, 
+                                                   " (95% CI: ",
+                                                   (surrogate_te - 1.96*surrogate_se_small) %>%
+                                                     exp %>% r2,
+                                                   " to ",
+                                                   (surrogate_te + 1.96*surrogate_se_small) %>%
+                                                     exp %>% r2,
+                                                   ")")]
+                          preds_df[, surrogate_pe_ci_big := paste0(surrogate_te %>%
+                                                           exp %>% r2, 
+                                                   " (95% CI: ",
+                                                   (surrogate_te - 1.96*surrogate_se_big) %>%
+                                                     exp %>% r2,
+                                                   " to ",
+                                                   (surrogate_te + 1.96*surrogate_se_big) %>%
+                                                     exp %>% r2,
+                                                   ")")]
+          } else if(effect_size == "ard") {
+            preds_df[, surrogate_pe_ci_small := paste0( (surrogate_te*100) %>%
+                                                          r1, 
+                                                   " (95% CI: ",
+                                                   ((surrogate_te - 1.96*surrogate_se_small)*100) %>% r1,
+                                                   " to ",
+                                                   ((surrogate_te + 1.96*surrogate_se_small)*100) %>% r1,
+                                                   ")")]
+                        preds_df[, surrogate_pe_ci_big := paste0( (surrogate_te*100) %>%
+                                                          r1, 
+                                                   " (95% CI: ",
+                                                   ((surrogate_te - 1.96*surrogate_se_big)*100) %>% r1,
+                                                   " to ",
+                                                   ((surrogate_te + 1.96*surrogate_se_big)*100) %>% r1,
+                                                   ")")]
+            
+          }
+                    }
+
+preds_df
+        }
+
+#Name the list with the effect size measures
+names(preds) <- effect_sizes
+
+
+```
+
+#### Get 97.5% surrogacy thresholds
+
+##### Calculate
+
+```{r}
+
+#Use a foreach loop to get surrogacy thresholds for each of the 3 effects
+surrogacy_thresholds <- foreach(
+  preds_df = preds,
+  es_label = c("odds ratio",
+               "risk ratio", 
+               "absolute % difference"),
+  .combine = "cbind") %do% {
+                 
+    #Surrogacy is defined for non-zero effects and effects > 10% reduction in odds/risk as well as effects > 1% risk reduction for absolute risk differences
+                 
+                 if(es_label %in% c("odds ratio", "risk ratio")) {
+                 tibble(
+                   !!as.symbol(es_label) := list(
+                     any_diff_inf = preds_df[q97.5_inf < 0][
+                                       surrogate_te == max(surrogate_te)
+                                       ][, surrogate_te] %>% exp %>% r2,
+                   small_diff_inf = preds_df[q97.5_inf < log(0.9)][
+                                       surrogate_te == max(surrogate_te)
+                                       ][, surrogate_te] %>% exp %>% r2,
+                     big_diff_inf = preds_df[q97.5_inf < log(0.8)][
+                                         surrogate_te == max(surrogate_te)
+                                       ][, surrogate_te] %>% exp %>% r2,
+                  any_diff_big = preds_df[q97.5_big < 0][
+                                       surrogate_te == max(surrogate_te)
+                                       ][, surrogate_pe_ci_big],
+                   small_diff_big = preds_df[q97.5_big < log(0.9)][
+                                       surrogate_te == max(surrogate_te)
+                                       ][, surrogate_pe_ci_big],
+                  big_diff_big = preds_df[q97.5_big < log(0.8)][
+                                       surrogate_te == max(surrogate_te)
+                                       ][, surrogate_pe_ci_big],
+                    any_diff_small = preds_df[q97.5_small < 0][
+                                       surrogate_te == max(surrogate_te)
+                                       ][, surrogate_pe_ci_small] ,
+                   small_diff_small = preds_df[q97.5_small < log(0.9)][
+                                       surrogate_te == max(surrogate_te)
+                                       ][, surrogate_pe_ci_small],
+                  big_diff_small = preds_df[q97.5_small < log(0.8)][
+                                       surrogate_te == max(surrogate_te)
+                                       ][, surrogate_pe_ci_small]
+                  ) %>%
+                    unlist
+                 )
+                   } else if (es_label == "absolute % difference") {
+                   tibble(
+                   !!as.symbol(es_label) := list(
+                     any_diff_inf = preds_df[q97.5_inf < 0][
+                                       surrogate_te == max(surrogate_te)
+                                       ][, surrogate_te*100],
+                   small_diff_inf = preds_df[q97.5_inf < -0.01][
+                                       surrogate_te == max(surrogate_te)
+                                       ][, surrogate_te*100],
+                   big_diff_inf = preds_df[q97.5_inf < -0.02][
+                                       surrogate_te == max(surrogate_te)
+                                       ][, surrogate_te*100],
+                  any_diff_big = preds_df[q97.5_big < 0][
+                                       surrogate_te == max(surrogate_te)
+                                       ][, surrogate_pe_ci_big],
+                   small_diff_big = preds_df[q97.5_big < -0.01][
+                                       surrogate_te == max(surrogate_te)
+                                       ][, surrogate_pe_ci_big],
+                  big_diff_big = preds_df[q97.5_big < -0.02][
+                                       surrogate_te == max(surrogate_te)
+                                       ][, surrogate_pe_ci_big],
+                    any_diff_small = preds_df[q97.5_small < 0][
+                                       surrogate_te == max(surrogate_te)
+                                       ][, surrogate_pe_ci_small] ,
+                   small_diff_small = preds_df[q97.5_small < -0.01][
+                                       surrogate_te == max(surrogate_te)
+                                       ][, surrogate_pe_ci_small],
+                  big_diff_small = preds_df[q97.5_small < -0.02][
+                                       surrogate_te == max(surrogate_te)
+                                       ][, surrogate_pe_ci_small]
+                  ) %>%
+                    unlist
+                                       
+                   )
+                 }
+  }
+
+#Convert to a data.table
+surrogacy_thresholds <- data.table(surrogacy_thresholds)
+
+#Create rows denoting size of reduction
+surrogacy_thresholds[, amount := c("any", "small", "large") %>% rep(times = 3)]
+surrogacy_thresholds[, size := c("infinite", "large", "small") %>% rep(each = 3)]
+
+#Order columns appropriately
+surrogacy_thresholds %>% setcolorder(c(4, 1:3))
+```
+
+##### Tabulate
+
+```{r}
+
+#Replace phrasings
+surrogacy_thresholds <- surrogacy_thresholds %>%
+  mutate(amount = amount %>%
+           str_replace("any",
+                       "Effect size required for a PPV of 97.5% for any reduction in all-cause hospitalization") %>%
+           str_replace("small",
+                       "Effect size required for a PPV of 97.5% for a small reduction in all-cause hospitalization") %>%
+  str_replace("large",
+                       "Effect size required for a PPV of 97.5% for a large reduction in all-cause hospitalization")) %>%
+  add_row(.before = which(.$size == "infinite"), 
+          amount = "For a (hypothetical) infinitely-sized trial with no uncertainty in estimating effect on HF hospitalizations") %>%
+  add_row(.before = which(.$size == "large"), 
+          amount = "For a large trial with minimal uncertainty in estimating effect on HF hospitalizations") %>%
+  add_row(.before = which(.$size == "small"), 
+          amount = "For a small trial with high uncertainty in estimating effect on HF hospitalizations") %>%
+ mutate_all(. %>% as.character)
+
+#Replace missing values in newly created rows by blanks
+surrogacy_thresholds[is.na(surrogacy_thresholds)] <- ""
+
+
+#Convert to flextable
+t <- surrogacy_thresholds %>%
+  dplyr::select(-size) %>%
+  flextable
+
+#Set appropriate headers
+t <- set_header_labels(t, values = c("Size of reduction in all-cause hospitalization",
+                                     "Odds Ratio",
+                                     "Risk Ratio",
+                                     "Absolute risk difference (percentage points)"))
+
+
+#Add footnote for parentheses
+t <- footnote(t, 
+         ref_symbols = footnote_symbol(1),
+         part = "header",
+         j = t$col_keys %>% 
+           str_detect("ratio|difference") %>% which,
+         value = as_paragraph("Numbers inside parentheses denote the associated confidence intervals for a trial with the corresponding required effect size and sample size. For the first category of hypothetical trials with infinite sample size, there is no uncertainty in estimating the effect on heart failure hospitalizations and therefore no confidence interval.")
+         )
+
+#Add footnote defining small reductions
+t <- footnote(t, 
+         ref_symbols = footnote_symbol(2),
+         part = "body",
+         i = t$body$dataset$amount %>%
+           str_detect("small reduction") %>%
+           which,
+         j = 1,
+         value = as_paragraph("A 10% reduction in odds or relative risks (risk/odds ratio of 0.9) or a 1% reduction in absolute risk.")
+         )
+
+
+#Add footnote defining large reductions
+t <- footnote(t, 
+         ref_symbols = footnote_symbol(3),
+         part = "body",
+         i = t$body$dataset$amount %>%
+           str_detect("large reduction") %>%
+           which,
+         j = 1,
+         value = as_paragraph("A 20% reduction in odds or relative risks (risk/odds ratio of 0.8) or a 2% reduction in absolute risk.")
+         )
+
+#Create table borders
+t <- border_inner(t)
+t <- border_outer(t)
+
+#Apply some aesthetics to make the table more visually appropriate
+t <- flextable_aes(t, table_title = "Table. Surrogate Threshold Effects for Heart Failure Hospitalization")
+
+# (Re-)merge header rows
+t <- merge_h_range(t, 
+             part = "body", 
+             j1 = 1, j2 = length(t$col_keys),
+             i = t$body$dataset$amount %>%
+           str_detect("uncertainty") %>%
+           which)
+#Add footer
+t <- add_footer_lines(t,
+                value = as_paragraph("PPV: Positive predictive value"))
+
+#fontsize
+t <- fontsize(t, size = 7, part = "all")
+
+#Adjust width
+t <- width(t, width = 1.5, unit = "in")
+
+#Save table as a word document
+save_as_docx(t, path = paste0("Table (", Sys.Date() , ").docx"))
+
+```
+
+#### Plot posterior predictive intervals
+
+```{r, warning = FALSE, message = FALSE, eval = TRUE, fig.width = 16, fig.height = 9}
+
+#Use a foreach loop to produce figures for each of the 3 effect sizes
+surrogacy_figs <- foreach(preds_df = preds,
+                          effect_size = effect_sizes,
+                          es_label = c("odds ratio", "risk ratio", "absolute % difference")) %do% {
+                            
+#Set titles/breaks etc. accordingly
+xtitle <- paste0("Effect on heart failure hospitalizations", " (", es_label, ")")
+ytitle <- paste0("Effect on all-cause hospitalizations", " (", es_label, ")")
+title <-  paste0("Trial-level association between effects on heart failure and all-cause hospitalization")
+subtitle <- paste0("The plot shows 3 predictive intervals under 3 scenarios: a hypothetical trial with no uncetainty in the effect on HF hospitalizations (maroon), a large trial with little uncertainty\nin the effect on HF hospitalizations (dark green), and a small trial with large uncertainty in the effect on HF hospitalization (light blue).\nThe horizontal black lines denote effects on all-cause hospitalizations for any reduction (solid), a small reduction (dashed), and a large reduction (dotted).")
+
+#Line types
+linetypes <- c("solid" = "solid", "dashed" = "dashed", "dotted" = "dotted")
+
+#Set line_color and width
+line_color = "maroon"
+line_width = 1
+
+#Scale transformation
+scale_trans <- if(effect_size == "ard") "identity" else "log"
+
+#Create a dataframe to display individual trial results as points
+points_df <- y %>% 
+  dplyr::select(trial, outcome, contains(effect_size)) %>%
+  pivot_wider(id_cols = "trial",
+              names_from = "outcome",
+              values_from = c(effect_size, paste0(effect_size, "_se"))) %>%
+  rename(es_hf = paste0(effect_size, "_hf"),
+         es_all = paste0(effect_size, "_all"),
+         se_es_hf = paste0(effect_size, "_se_hf"),
+         se_es_all = paste0(effect_size, "_se_all")) %>%
+  mutate(es_hf = {if(effect_size == "ard") 100*es_hf else exp(es_hf)},
+         es_all = {if(effect_size == "ard") 100*es_all else exp(es_all)})
+
+#Create an object containing axes breaks
+if(effect_size == "logor") {
+  ybreaks <- c(0.25, 0.5, 0.75, 1, 1.25, 1.5, 2)
+  xbreaks <- c(0.25, 0.5, 0.75, 1, 1.25, 1.5, 2)
+} else if(effect_size == "logrr") {
+  ybreaks <- c(0.25, 0.5, 0.75, 1, 1.25, 1.5, 2)
+  xbreaks <- c(0.25, 0.5, 0.75, 1, 1.25, 1.5, 2)
+} else if(effect_size == "ard") {
+  ybreaks <- seq(-0.2, 0.16, 0.02)*100
+  xbreaks <- seq(-0.2, 0.2, 0.02)*100
+}
+  
+#Plot
+ggplot(data = preds_df %>%
+         dplyr::select(-surrogate_pe_ci_small, -surrogate_pe_ci_big) %>%
+         {if(effect_size == "ard") 100*. else exp(.)},
+              aes(x = surrogate_te,
+                  y = pe)) +
+  #Points
+  geom_point(data = points_df,
+             alpha = 0.15,
+             aes(x = es_hf,
+                 y = es_all,
+                 size = (1/se_es_hf))) +
+  scale_size_continuous(range = c(3, 30)) +
+  #Ribbon
+    geom_ribbon(aes(ymin = q2.5_small, ymax = q97.5_small),
+              fill = "lightblue",
+              alpha = 0.6) +
+  geom_ribbon(aes(ymin = q2.5_big, ymax = q97.5_big),
+              fill = "darkolivegreen",
+              alpha = 0.5) +
+    geom_ribbon(aes(ymin = q2.5_inf, ymax = q97.5_inf),
+              fill = "maroon",
+              alpha = 0.4) +
+  #Add Lines
+  geom_line(aes(y = pe,
+                  x = surrogate_te,
+                  linetype = "solid"),
+              color = "maroon",
+              lwd = line_width,
+            linetype = "solid") +
+    geom_hline(yintercept = {if(effect_size == "ard") 0 else 1},
+             color = "black",
+             linewidth = 1) +
+      geom_hline(yintercept = {if(effect_size == "ard") 1 else 0.9},
+             color = "black",
+             linetype = "dashed",
+             linewidth = 1) +
+        geom_hline(yintercept = {if(effect_size == "ard") 2 else 0.8},
+             color = "black",
+             linetype = "dotted",
+             linewidth = 1) +
+  #Title
+  ggtitle(title,
+          subtitle = subtitle) +
+  #Add linetype legend
+  #Add scales
+  scale_x_continuous(
+    name = xtitle,
+    trans = scale_trans,
+    expand = c(0.0, 0.0),
+    breaks = xbreaks
+  ) +
+  scale_y_continuous(
+    name = ytitle,
+    trans = scale_trans,
+    expand = c(0.0, 0.0),
+    breaks = ybreaks
+  ) + 
+  theme_pubclean() +
+  theme(text = element_text(size = 23),
+        plot.title = element_text(face = "bold",hjust = 0.0, size = 20),
+        plot.subtitle = element_text(face = "bold", size = 13, hjust = 0.0, color = "grey45"),
+        panel.grid.major.y = element_line(linetype = "dotted", 
+      color = "grey"),
+      panel.grid.major.x = element_line(linetype = "dotted", 
+      color = "grey"),
+        axis.text.x = element_text(size = 20, face = "bold"),
+        axis.text.y = element_text(size = 20, face = "bold"),
+        axis.title.x = element_text(size = 20, face = "bold"),
+        axis.title.x.top = element_text(size = 15, face = "bold"),
+        axis.text.x.top = element_text(size = 15, face = "bold"),
+        axis.title.y = element_text(size = 20, face = "bold"),
+        axis.title.y.right = element_text(size = 15, face = "bold"),
+        axis.text.y.right = element_text(size = 15, face = "bold"),
+        axis.line = element_line(colour = "black", linewidth = 1.2),
+        legend.position = "none") +
+  #Remove fill in legend
+  guides(linetype = guide_legend(override.aes = list(fill = NA,
+                                                     size = NA))) +
+  coord_cartesian(xlim = range(points_df$es_hf)*c(0.95, 1.05),
+                  ylim = range(points_df$es_all)*c(0.95, 1.05))
+ # coord_cartesian(xlim = quantile(points_df$es_hf, c(0.05, 0.95)),
+ #                ylim = quantile(points_df$es_all, c(0.05, 0.95)))
+                          }
+
+#Save the OR figure as Figure 4
+ggsave(plot = surrogacy_figs[[1]],
+       filename = "Figure 4.pdf",
+       dpi = 600,
+       width = 16, height = 9)
+
+#Save the RR figure as Supp. Figure 1
+ggsave(plot = surrogacy_figs[[2]],
+       filename = "Supp Figure 1.pdf",
+       dpi = 600,
+       width = 16, height = 9)
+
+#Save the ARD figure as Supp. Figure 1
+ggsave(plot = surrogacy_figs[[3]],
+       filename = "Supp Figure 2.pdf",
+       dpi = 600,
+       width = 16, height = 9)
+
+
+```
+
+*Assessment of surrogacy*
+
+**Figure 3** shows the predictive value of HF hospitalization with respect to all-cause hospitalization using the odds ratio as a measure of effect size. Analyses using risk ratios and absolute risk differences are shown in the supplement. Three salient aspects will be highlighted. First, the two effects were well-correlated (R^2^ of `r mean(100*sparams$logor$rho^2) %>% round(1) %>% format(nsmall = 1)`%; 95% CrI: `r quantile(100*sparams$logor$rho^2, c(0.025)) %>% round(1) %>% format(nsmall = 1)`% to `r quantile(100*sparams$logor$rho^2, c(0.975)) %>% round(1) %>% format(nsmall = 1)`%). For risk ratios and absolute risk differences, the R^2^ values were `r mean(100*sparams$logrr$rho^2) %>% round(1) %>% format(nsmall = 1)`% (95% CrI: `r quantile(100*sparams$logrr$rho^2, c(0.025)) %>% round(1) %>% format(nsmall = 1)`% to `r quantile(100*sparams$logrr$rho^2, c(0.975)) %>% round(1) %>% format(nsmall = 1)`%) and `r mean(100*sparams$ard$rho^2) %>% round(1) %>% format(nsmall = 1)`% (95% CrI: `r quantile(100*sparams$ard$rho^2, c(0.025)) %>% round(1) %>% format(nsmall = 1)`% to `r quantile(100*sparams$ard$rho^2, c(0.975)) %>% round(1) %>% format(nsmall = 1)`%) respectively.
+
+Second, the average effect on all-cause hospitalization was approximately half that on HF hospitalization, a relationship which was relatively consistent across all 3 measures of effect size. For example, a 25% reduction in the odds of HF hospitalization would be expected to approximately yield a \~12.5% reduction in the odds of all-cause hospitalization (**Figure 3**), a 25% reduction in the relative risk of HF hospitalization would be expected to approximately yield a \~12.5% reduction in the relative risk of all-cause hospitalization (**Supplementary Figure 1**), and a 6% absolute risk reduction in HF hospitalization would be expected to approximately yield a \~3% absolute risk reduction of all-cause hospitalization (**Supplementary Figure 2**).
+
+Third, a given effect on HF hospitalization corresponded to a relatively broad 95% predictive interval for all-cause hospitalization. For a hypothetical trial with no uncertainty in the treatment's effect on HF hospitalization (corresponding to the shaded maroon interval in **Figure 4**), a 25% reduction in the odds of HF hospitalization could correspond to anywhere between a `r preds$logor[-0.289 > surrogate_te & surrogate_te > -0.291, q97.5_inf] %>% exp %>% {1 - .} %>% {.*100} %>% round(0)`% and `r preds$logor[-0.289 > surrogate_te & surrogate_te > -0.291, q2.5_inf] %>% exp %>% {1 - .} %>% {.*100} %>% round(0)`% reduction in the odds of all-cause hospitalization. Incorporation of the uncertainty in the treatment's effect on HF hospitalizations (which, unlike the hypothetical maroon interval, is never reducible to 0 in real RCTs) resulted in a further widening of the predictive intervals, corresponding to the dark green shaded interval (for a large trial with small uncertainty) and the light blue shaded interval (for a small trial with large uncertainty) in **Figure 4**.
+
+## Reporting patterns for all-cause hospitalization
+
+### Reporting trends
+
+```{r, message = FALSE, warning = FALSE}
+
+#Convert to factor
+xfull[, allh_reported := factor(allh_reported)]
+
+#Regress reporting pattern vs year
+reporting_trends_or <- glm(data = xfull, family = binomial,
+    formula = allh_reported ~ pub_year) %>% 
+  tidy(conf.int = TRUE, exp = TRUE) %>%
+  filter(term != "(Intercept)") %>%
+  mutate(across(.cols = c("estimate", "conf.low", "conf.high"),~ .^10)) %>%
+  mutate(pe_ci = paste0(estimate %>% r2,
+                        "; 95% CI: ", conf.low %>% r2, 
+                        " to ", conf.high %>% r2))
+
+#Regress reporting pattern vs NYHA
+nyha_report_or <- glm(data = xfull, family = binomial,
+    formula = allh_reported ~ nyha) %>% 
+  tidy(conf.int = TRUE, exp = TRUE) %>%
+  filter(term != "(Intercept)") %>%
+  mutate(across(.cols = c("estimate", "conf.low", "conf.high"),~ .^10)) %>%
+  mutate(pe_ci = paste0(estimate %>% r2,
+                        "; 95% CI: ", conf.low %>% r2, 
+                        " to ", conf.high %>% r2))
+
+#Regress reporting pattern vs LVEF
+lvef_report_or <- glm(data = xfull, family = binomial,
+    formula = allh_reported ~ lvef) %>% 
+  tidy(conf.int = TRUE, exp = TRUE) %>%
+  filter(term != "(Intercept)") %>%
+  mutate(across(.cols = c("estimate", "conf.low", "conf.high"),~ .^10)) %>%
+  mutate(pe_ci = paste0(estimate %>% r2,
+                        "; 95% CI: ", conf.low %>% r2, 
+                        " to ", conf.high %>% r2))
+
+#Regress reporting pattern vs Intervention class
+intvn_class_report_or <- glm(data = xfull, family = binomial,
+    formula = allh_reported ~ intvn_class) %>% 
+  tidy(conf.int = TRUE, exp = TRUE) %>%
+  filter(term != "(Intercept)") %>%
+  mutate(pe_ci = paste0(estimate %>% r2,
+                        "; 95% CI: ", conf.low %>% r2, 
+                        " to ", conf.high %>% r2))
+
+#Regress reporting pattern vs HF type
+hf_type_report_or <- glm(data = xfull, family = binomial,
+    formula = allh_reported ~ hf_type) %>% 
+  tidy(conf.int = TRUE, exp = TRUE) %>%
+  filter(term != "(Intercept)") %>%
+  mutate(pe_ci = paste0(estimate %>% r2,
+                        "; 95% CI: ", conf.low %>% r2, 
+                        " to ", conf.high %>% r2))
+
+#N of trials with available pre-registered protocols
+n_available_prots <- xfull[!is.na(prot_report), .N]
+#N of trials where all-cause hospitalization was pre-specified in the protocol
+prespecified_n <- xfull[prot_report == "Yes", .N]
+#N of trials where all-cause hospitalization was not pre-specified in the protocol
+not_prespecified_n <- xfull[prot_report == "No", .N]
+#N where all-cause hospitalization was pre-specified in the protocol but unreported
+prespecified_unreported_n <- xfull[allh_reported == "No" & prot_report == "Yes", .N]
+
+
+```
+
+*Reporting of all-cause hospitalization*
+
+Out of the `r xfull[, .N]` trials included in this analysis, `r xfull[, sum(allh_reported == "Yes")]` (`r (xfull[, sum(allh_reported == "Yes")/.N]*100) %>% round(1) %>% format(nsmall = 1)`%) reported on all-cause hospitalization whereas `r xfull[, sum(allh_reported == "No")]` (`r (xfull[, sum(allh_reported == "No")/.N]*100) %>% round(1) %>% format(nsmall = 1)`%) did not report on all-cause hospitalization. There was no indication that the rates of reporting all-cause hospitalization improved over time (*P* = `r reporting_trends_or$pe_ci`) (**Figure 5**). Additionally, there was no statistically significant association between reporting all-cause hospitalization and the covariates that were associated with the ratio of HF to all-cause hospitalizations, including the proportion of patients with NYHA III/IV (OR per 10 percentage points = `r nyha_report_or$pe_ci`), LVEF (OR per 10 percentage points increase = `r lvef_report_or$pe_ci`), class of intervention (OR for pharmaceutical vs non-pharmaceutical = `r intvn_class_report_or$pe_ci`), and the enrollment of patients with HFmrEF/HFpEF (OR = `r hf_type_report_or$pe_ci`). Of the `r n_available_prots` trials with available pre-registered protocols, the majority (`r not_prespecified_n` trials) did not pre-specify all-cause hospitalization as an endpoint of interest whereas `r prespecified_n` trials did. All trials which pre-specified all-cause hospitalization as an endpoint of interest ultimately reported on it with the exception of `r prespecified_unreported_n` trials.
+
+### Reporting patterns figure
+
+```{r, message = FALSE, warning = FALSE, fig.height = 9, fig.width = 16}
+
+#Plot trends across time
+ggplot(data = xfull,
+               aes(x = pub_year,
+                   y = ..count..,
+                   fill = allh_reported)) +
+  geom_density(position = "fill") +
+  ggtitle("Reporting of all-cause hospitalization among trials that\n reported heart failure hospitalization, 1991 to 2023") +
+  scale_y_continuous(expand = expand_scale(0.01),
+                     name = "\nReporting of all-cause hospitalization (%)\n\nYes                             No",
+                     labels = seq(0, 100, 25)) +
+  scale_x_continuous(expand = expand_scale(0),
+                     name = "Year of publication",
+                     breaks = seq(1995, 2020, 5),
+                     limits = c(1990, 2024)) +
+  scale_fill_manual(name = "Reported all-cause\nhospitalization?",
+                      values = c("maroon", "lightblue")) +
+  theme_bw() +
+  theme(text = element_text(size = 23, face = "bold"),
+        plot.title=element_text(face = "bold",hjust = 0.5, size = 30),
+        axis.text.x = element_text(size = 20, face = "bold"),
+        axis.text.y = element_text(size = 20, face = "bold"),
+        axis.title.x = element_text(size = 25, face = "bold"),
+        axis.title.y = element_text(size = 25, face = "bold"),
+        axis.line = element_line(colour = "black", size = 0),
+        panel.grid = element_blank(),
+        legend.position = "right",
+        legend.key.size = unit(1.25, "cm")) 
+
+ggsave("Figure 5.pdf",
+       dpi = 600,
+       width = 16, height = 9)
+
+```
+
+## Save rendering data
+
+```{r}
+save.image("Rendering Data.RData")
+```
